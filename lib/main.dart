@@ -5,9 +5,17 @@ void main() => runApp(const MyApp());
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(home: WifiInfoScreen());
+    return MaterialApp(
+      title: 'Smart Wi-Fi Advisor',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
+        useMaterial3: true,
+      ),
+      home: const WifiInfoScreen(),
+    );
   }
 }
 
@@ -21,6 +29,7 @@ class WifiInfoScreen extends StatefulWidget {
 class _WifiInfoScreenState extends State<WifiInfoScreen> {
   Map<String, dynamic> devices = {};
   List<dynamic> suggestions = [];
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -29,38 +38,81 @@ class _WifiInfoScreenState extends State<WifiInfoScreen> {
   }
 
   Future<void> loadData() async {
+    setState(() => isLoading = true);
     devices = await ApiService.getDevices();
     suggestions = await ApiService.getSuggestions();
-    setState(() {});
+    setState(() => isLoading = false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Smart Wi-Fi Advisor")),
-      body: RefreshIndicator(
-        onRefresh: loadData,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            const Text("Device Usage:", style: TextStyle(fontSize: 18)),
-            ...devices.entries.map(
-              (e) => ListTile(
-                title: Text(e.key),
-                subtitle: Text("${e.value} bytes"),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text("Suggestions:", style: TextStyle(fontSize: 18)),
-            ...suggestions.map(
-              (s) => ListTile(
-                title: Text(s['device']),
-                subtitle: Text("${s['problem']} - ${s['suggestion']}"),
-              ),
-            ),
-          ],
-        ),
+      appBar: AppBar(
+        title: const Text("Smart Wi-Fi Advisor"),
+        centerTitle: true,
+        backgroundColor: Theme.of(context).colorScheme.primary,
       ),
+      body:
+          isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : RefreshIndicator(
+                onRefresh: loadData,
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    const Text(
+                      "📶 Device Usage",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    ...devices.entries.map(
+                      (entry) => Card(
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ListTile(
+                          leading: const Icon(Icons.devices),
+                          title: Text(entry.key),
+                          subtitle: Text(
+                            "${entry.value} bytes used",
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    const Text(
+                      "💡 Suggestions",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    ...suggestions.map(
+                      (s) => Card(
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ListTile(
+                          leading: const Icon(Icons.lightbulb_outline_rounded),
+                          title: Text(s['device']),
+                          subtitle: Text(
+                            "${s['problem']}\nSuggestion: ${s['suggestion']}",
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          isThreeLine: true,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
     );
   }
 }
